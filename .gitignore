@@ -1,0 +1,4 @@
+Data/net-data/*
+output/*
+*/*.pyc
+*.pyc
