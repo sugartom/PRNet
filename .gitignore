@@ -2,3 +2,7 @@ Data/net-data/*
 output/*
 */*.pyc
 *.pyc
+TestImages/AFLW2000_results/**
+TestImages/tom_input/**
+TestImages/tom_output/**
+exported_prnet/**
