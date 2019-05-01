@@ -155,8 +155,8 @@ class PosPrediction():
         # self.sess = tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=True)))
         # self.sess = tf.Session()
 
-        host = 'localhost'
-        port = '8500'
+        # host = 'localhost'
+        # port = '8500'
         channel = grpc.insecure_channel('0.0.0.0:8500')
         self.stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
 
@@ -165,7 +165,7 @@ class PosPrediction():
         # tf.train.Saver(self.network.vars).restore(self.sess, model_path)
         return
 
-    def predict(self, image):
+    def predict(self, image, istub=None):
         # pos = self.sess.run(self.x_op,
         #             feed_dict = {self.x: image[np.newaxis, :,:,:]})
 
@@ -199,6 +199,13 @@ class PosPrediction():
         # print('Done exporting!')
         # # Yitao-TLS-End
 
+        if istub is None:
+            print("Specify grpc stub for tensorflow serving")
+            print("fallback to 0.0.0.0:8500")
+            # channel = grpc.insecure_channel('0.0.0.0:8500')
+            # istub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
+            istub = self.stub
+
         new_image = image[np.newaxis, :, :, :]
         new_image = new_image.astype(np.float32)
 
@@ -207,7 +214,7 @@ class PosPrediction():
         request.model_spec.signature_name = 'predict_images'
         request.inputs['input'].CopyFrom(
             tf.contrib.util.make_tensor_proto(new_image, shape=new_image.shape))
-        result = self.stub.Predict(request, 10.0)  # 10 secs timeout
+        result = istub.Predict(request, 10.0)  # 10 secs timeout
 
         pos = tensor_util.MakeNdarray(result.outputs['output'])
 

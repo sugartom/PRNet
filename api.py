@@ -3,6 +3,7 @@ import os
 from skimage.io import imread, imsave
 from skimage.transform import estimate_transform, warp
 from time import time
+import cv2
 
 from predictor import PosPrediction
 
@@ -62,16 +63,16 @@ class PRN:
     def dlib_detect(self, image):
         return self.face_detector(image, 1)
 
-    def net_forward(self, image):
+    def net_forward(self, image, istub):
         ''' The core of out method: regress the position map of a given image.
         Args:
             image: (256,256,3) array. value range: 0~1
         Returns:
             pos: the 3D position map. (256, 256, 3) array.
         '''
-        return self.pos_predictor.predict(image)
+        return self.pos_predictor.predict(image,istub)
 
-    def process(self, input, image_info=None):
+    def process(self, input, image_info=None, istub=None):
         ''' process image with crop operation.
         Args:
             input: (h,w,3) array or str(image path). image value range:1~255.
@@ -136,14 +137,16 @@ class PRN:
             [[0, 0], [0, self.resolution_inp - 1], [self.resolution_inp - 1, 0]])
         tform = estimate_transform('similarity', src_pts, DST_PTS)
 
+        #st = time()
         image = image / 255.
-        cropped_image = warp(image, tform.inverse, output_shape=(
-            self.resolution_inp, self.resolution_inp))
+        cropped_image = cv2.warpAffine(image, tform.params[:2], dsize=(self.resolution_inp, self.resolution_inp))
+        # cropped_image = warp(image, tform.inverse, output_shape=(
+        #    self.resolution_inp, self.resolution_inp))
+        #print 'crop time:', time() - st
 
         # run our net
-        #st = time()
-        cropped_pos = self.net_forward(cropped_image)
-        # print 'net time:', time() - st
+        cropped_pos = self.net_forward(cropped_image, istub)
+        #print 'net+crop time:', time() - st
 
         # restore
         cropped_vertices = np.reshape(cropped_pos, [-1, 3]).T
